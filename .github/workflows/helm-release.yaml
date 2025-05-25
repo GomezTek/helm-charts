@@ -30,6 +30,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
@@ -51,21 +56,16 @@ jobs:
           if [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
             # For release branches, append git sha
             SHA=$(git rev-parse --short HEAD)
-            CHART_VERSION=$(yq '.version' ${{ env.CHART_DIR }}/Chart.yaml)
+            CHART_VERSION=$(yq eval '.version' ${{ env.CHART_DIR }}/Chart.yaml)
             NEW_VERSION="${CHART_VERSION}-${SHA}"
-            yq -i '.version = "'${NEW_VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
+            yq eval -i '.version = "'${NEW_VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
             echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
           else
             # For master/main, use version as is
-            VERSION=$(yq '.version' ${{ env.CHART_DIR }}/Chart.yaml)
+            VERSION=$(yq eval '.version' ${{ env.CHART_DIR }}/Chart.yaml)
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Package Chart
-        run: |
-          helm package ${{ env.CHART_DIR }}
-
-      # Push to GitHub Pages Helm repo
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.5.0
         env:
@@ -74,6 +74,11 @@ jobs:
         with:
           charts_dir: .
           config: .github/cr.yaml
+
+      - name: Package Chart
+        run: |
+          helm dependency update ${{ env.CHART_DIR }}
+          helm package ${{ env.CHART_DIR }}
 
       # Push to GitHub Container Registry
       - name: Login to GitHub Container Registry

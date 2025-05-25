@@ -9,9 +9,14 @@ mysql:
   secret_name: mysql-secret
   service_account: sa-mysql
 
-backhouse-web:
+redis:
+  image: redis:6.2.7
+  replicas: 1
+  service_account: sa-redis
+
+backhouseweb:
   image: gomeztek/flash:v3.6.1-hf2
-  replicas: 0
+  replicas: 2
   service_account: sa-web
   resources:
     limits:
@@ -21,12 +26,7 @@ backhouse-web:
       cpu: "0.2"
       memory: 256Mi
 
-redis:
-  image: redis:6.2.7
-  replicas: 1
-  service_account: sa-redis
-
-fronthouse-web:
+fronthouseweb:
   image: gomeztek/flash:v3.6.1-hf2
   replicas: 2
   service_account: sa-web
@@ -40,39 +40,27 @@ fronthouse-web:
 
 ingress:
   className: nginx-external
-  hosts:
-    # Production hosts
-    - host: comadres2.store.gtkpos.com
-      service: backhouse-web-service
-    - host: store.gtkpos.com
-      service: fronthouse-web-service
-    # Blue/Green testing hosts
-    - host: blue.backhouse.gtkpos.com
-      service: backhouse-web-preview-service
-    - host: blue.store.gtkpos.com
-      service: fronthouse-web-preview-service
-  tls:
-    - secretName: secret-tls-comadres2
+  backhouse:
+    hosts:
+      - host: backhouse.gtkpos.com
+    tls:
+      secretName: backhouse-tls
       hosts:
-        - comadres2.store.gtkpos.com
+        - backhouse.gtkpos.com
+  fronthouse:
+    hosts:
+      - host: store.gtkpos.com
+    tls:
+      secretName: fronthouse-tls
+      hosts:
         - store.gtkpos.com
-        - blue.backhouse.gtkpos.com
-        - blue.store.gtkpos.com
 
-# No secrets should be stored in values.yaml
-# Secrets should be managed externally and applied separately
-
-rolloutStrategy:
-  type: canary
-  steps:
-    - setWeight: 25
-    - pause: { duration: 30s }
-    - setWeight: 50
-    - pause: { duration: 1m }
-    - setWeight: 100
-
-online-orders:
-  image: gomeztek/flash:v3.6.1-hf2
-  replicas: 2
-  service_account: sa-online-orders
+# Argo Rollouts configuration
+rolloutConfig:
+  strategy:
+    blueGreen:
+      activeService: backhouse-service
+      previewService: backhouse-preview-service
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 300  # 5 minutes delay before scaling down old version
 
