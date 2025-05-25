@@ -12,6 +12,7 @@ on:
 
 env:
   CHART_DIR: gtk-mesa-chart
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 jobs:
   chart-test:
@@ -60,7 +61,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ success() }}
     permissions:
-      contents: write
       packages: write
 
     steps:
@@ -74,11 +74,6 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
@@ -89,32 +84,9 @@ jobs:
           helm repo add argo https://argoproj.github.io/argo-helm
           helm repo update
 
-      - name: Initialize gh-pages branch
-        run: |
-          # Store current branch name
-          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          
-          # Check if gh-pages branch exists
-          if ! git ls-remote --heads origin gh-pages | grep gh-pages > /dev/null; then
-            echo "Creating gh-pages branch"
-            git checkout --orphan gh-pages
-            git reset --hard
-            # Create empty index.yaml
-            helm repo index --url https://gomeztek.github.io/helm-charts .
-            git add index.yaml
-            git commit -m "Initialize gh-pages branch with empty index.yaml"
-            git push origin gh-pages
-            # Return to original branch
-            git checkout $CURRENT_BRANCH
-          fi
-
       - name: Set Chart Version
         id: set_version
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Chart directory contents:"
-          ls -la ${{ env.CHART_DIR }}
-          
           # Get base version from Chart.yaml
           CHART_VERSION=$(yq eval '.version' ${{ env.CHART_DIR }}/Chart.yaml)
           
@@ -131,23 +103,7 @@ jobs:
           yq eval -i '.version = "'${NEW_VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
           echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Package Chart
-        run: |
-          helm dependency update ${{ env.CHART_DIR }}
-          helm package ${{ env.CHART_DIR }}
-          mkdir -p .cr-release-packages
-          mv *.tgz .cr-release-packages/
-
-      - name: Create Release
-        uses: helm/chart-releaser-action@v1.5.0
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_SKIP_EXISTING: true
-        with:
-          charts_dir: .
-          config: .github/cr.yaml
-
-      - name: Push to GHCR
+      - name: Build and Push Chart
         env:
           HELM_EXPERIMENTAL_OCI: 1
         run: |
@@ -155,12 +111,15 @@ jobs:
           CHART_NAME=mesa
           # Convert repository owner to lowercase for GHCR
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          REGISTRY=ghcr.io/${REPO_OWNER}/charts
+          
+          echo "Building dependencies..."
+          helm dependency build ${{ env.CHART_DIR }}
           
           echo "Logging into GHCR..."
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
           
-          echo "Pushing chart ${CHART_NAME}:${VERSION} to ${REGISTRY}..."
-          helm push .cr-release-packages/mesa-${VERSION}.tgz oci://${REGISTRY}
+          echo "Packaging and pushing chart ${CHART_NAME}:${VERSION}..."
+          helm package ${{ env.CHART_DIR }}
+          helm push mesa-${VERSION}.tgz oci://${REPO_OWNER}/charts
           
           echo "Successfully pushed chart to GHCR"
