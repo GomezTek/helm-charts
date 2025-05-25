@@ -58,6 +58,18 @@ jobs:
           helm repo add argo https://argoproj.github.io/argo-helm
           helm repo update
 
+      - name: Initialize gh-pages branch
+        run: |
+          # Check if gh-pages branch exists
+          if ! git ls-remote --heads origin gh-pages | grep gh-pages > /dev/null; then
+            echo "Creating gh-pages branch"
+            git checkout --orphan gh-pages
+            git reset --hard
+            git commit --allow-empty -m "Initialize gh-pages branch"
+            git push origin gh-pages
+            git checkout -
+          fi
+
       - name: Set Chart Version
         id: set_version
         run: |

@@ -3,6 +3,7 @@ git-base-url: https://api.github.com/
 git-upload-url: https://uploads.github.com/
 index-path: .cr-index
 charts-repo: https://gomeztek.github.io/helm-charts
+packages-path: .cr-release-packages
+push: true
+pages-branch: gh-pages
 skip-existing: true
-packages:
-  - gtk-mesa-chart
