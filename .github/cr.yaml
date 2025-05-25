@@ -1,9 +1,10 @@
-owner: gomeztek
+owner: GomezTek
 git-base-url: https://api.github.com/
 git-upload-url: https://uploads.github.com/
-index-path: .cr-index
-charts-repo: https://gomeztek.github.io/helm-charts
+index-path: .
 packages-path: .cr-release-packages
+charts-repo: https://gomeztek.github.io/helm-charts
 push: true
 pages-branch: gh-pages
 skip-existing: true
+remote-repo: helm-charts
