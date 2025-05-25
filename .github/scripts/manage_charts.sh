@@ -11,7 +11,14 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+# Headers for API calls
+HEADERS=(
+    "Authorization: Bearer $GITHUB_TOKEN"
+    "Accept: application/vnd.github.v3+json"
+)
 
 # Check if GITHUB_TOKEN and GITHUB_USERNAME are set
 if [ -z "$GITHUB_TOKEN" ] || [ -z "$GITHUB_USERNAME" ]; then
@@ -36,6 +43,30 @@ list_releases() {
     curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
         "$API_URL/repos/${REPO_OWNER}/${REPO_NAME}/releases" | \
         jq -r '.[] | "\(.id) -> \(.tag_name) (\(.created_at))"'
+}
+
+# Function to list all tags
+list_tags() {
+    echo -e "${CYAN}Fetching Git tags...${NC}"
+    curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+        "$API_URL/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/tags" | \
+        jq -r '.[] | "\(.ref) -> \(.object.sha)"'
+}
+
+# Function to delete a tag
+delete_tag() {
+    local tag_ref=$1
+    echo -e "${YELLOW}Deleting tag $tag_ref...${NC}"
+    response=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE \
+        -H "Authorization: Bearer $GITHUB_TOKEN" \
+        "$API_URL/repos/${REPO_OWNER}/${REPO_NAME}/git/${tag_ref}")
+    
+    if [ "$response" = "204" ]; then
+        echo -e "${GREEN}Successfully deleted tag $tag_ref${NC}"
+    else
+        echo -e "${RED}Failed to delete tag $tag_ref (HTTP $response)${NC}"
+        return 1
+    fi
 }
 
 # Function to delete a specific package version
@@ -77,10 +108,12 @@ show_help() {
     echo "Commands:"
     echo "  list-packages    List all chart package versions"
     echo "  list-releases    List all GitHub releases"
-    echo "  list-all        List both package versions and releases"
+    echo "  list-tags       List all Git tags"
+    echo "  list-all        List all packages, releases, and tags"
     echo "  delete-pkg      Delete specific package version"
     echo "  delete-release  Delete specific release"
-    echo "  clean           Attempt to delete all versions and releases"
+    echo "  delete-tag      Delete specific tag (provide full ref, e.g., 'refs/tags/v1.0.0')"
+    echo "  clean           Attempt to delete all versions, releases, and tags"
     echo "  help            Show this help message"
     echo
     echo "Examples:"
@@ -99,12 +132,18 @@ case "$1" in
     "list-releases")
         list_releases
         ;;
+    "list-tags")
+        list_tags
+        ;;
     "list-all")
         echo -e "${BLUE}=== Package Versions ===${NC}"
         list_package_versions
         echo
         echo -e "${BLUE}=== GitHub Releases ===${NC}"
         list_releases
+        echo
+        echo -e "${CYAN}=== Git Tags ===${NC}"
+        list_tags
         ;;
     "delete-pkg")
         if [ -z "$2" ]; then
@@ -122,8 +161,16 @@ case "$1" in
         fi
         delete_release "$2"
         ;;
+    "delete-tag")
+        if [ -z "$2" ]; then
+            echo -e "${RED}Error: Tag ref required${NC}"
+            echo "Usage: $0 delete-tag refs/tags/TAG_NAME"
+            exit 1
+        fi
+        delete_tag "$2"
+        ;;
     "clean")
-        echo -e "${YELLOW}Warning: This will attempt to delete all package versions and releases${NC}"
+        echo -e "${YELLOW}Warning: This will attempt to delete all package versions, releases, and tags${NC}"
         read -p "Are you sure you want to continue? [y/N] " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -141,6 +188,14 @@ case "$1" in
                 jq -r '.[].id')
             for release in $releases; do
                 delete_release "$release"
+            done
+
+            echo -e "\n${CYAN}Cleaning tags...${NC}"
+            tags=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "$API_URL/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/tags" | \
+                jq -r '.[].ref')
+            for tag in $tags; do
+                delete_tag "$tag"
             done
         fi
         ;;
