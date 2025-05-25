@@ -29,6 +29,13 @@ graph TD
 
 ### 2. Release Process
 
+#### Automated Release Management
+The GitHub Actions workflow automatically handles:
+- Version management based on branch type
+- Chart packaging and publishing to GHCR
+- GitHub release and tag creation
+- Cleanup of existing releases/tags for version updates
+
 #### Feature Development
 - Work on any branch
 - Push changes freely
@@ -71,7 +78,7 @@ gh workflow run version-bump --field version_type=minor
 gh workflow run version-bump --field version_type=major
 ```
 
-### 4. Chart Distribution
+### 4. Chart Distribution & Management
 
 #### GitHub Container Registry (OCI)
 ```zsh
@@ -81,6 +88,29 @@ helm pull oci://ghcr.io/gomeztek/charts/mesa --version 0.1.0
 # Install from OCI
 helm install mesa oci://ghcr.io/gomeztek/charts/mesa --version 0.1.0
 ```
+
+#### Package Management Scripts
+
+The repository includes management scripts to help with package maintenance:
+
+```zsh
+# Delete all chart versions (interactive)
+.github/scripts/delete_deployments.sh
+
+# Force delete all versions without confirmation
+.github/scripts/delete_deployments.sh -f
+
+# Delete versions for a specific owner
+.github/scripts/delete_deployments.sh -o myorg
+
+# Show help message
+.github/scripts/delete_deployments.sh -h
+```
+
+Requirements for management scripts:
+- `GITHUB_TOKEN` environment variable with `delete:packages` scope
+- `jq` command-line JSON processor
+- `curl` command-line tool
 
 #### GitHub Pages (Traditional Helm Repository)
 ```zsh
