@@ -62,6 +62,7 @@ jobs:
     if: ${{ success() }}
     permissions:
       packages: write
+      contents: write
 
     steps:
       - name: Checkout
@@ -123,3 +124,22 @@ jobs:
           helm push mesa-${VERSION}.tgz oci://ghcr.io/${REPO_OWNER}/charts
           
           echo "Successfully pushed chart to GHCR"
+
+      - name: Create Release and Tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.set_version.outputs.version }}
+          TAG="mesa-${VERSION}"
+          
+          # Create a tag
+          git tag $TAG
+          git push origin $TAG
+          
+          # Create a release
+          gh release create $TAG \
+            --title "Mesa Chart ${VERSION}" \
+            --notes "Release of Mesa Chart version ${VERSION}" \
+            mesa-${VERSION}.tgz
+          
+          echo "Successfully created release and tag ${TAG}"
