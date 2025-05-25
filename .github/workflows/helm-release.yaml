@@ -9,20 +9,28 @@ on:
     paths:
       - 'gtk-mesa-chart/**'
       - '.github/workflows/helm-release.yaml'
-  # Allow manual triggers
   workflow_dispatch:
 
 env:
   CHART_DIR: gtk-mesa-chart
-  CHART_REPO_URL: https://${{ github.repository_owner }}.github.io/helm-charts
-  CHART_REPO_NAME: gomeztek-charts
 
 jobs:
+  debug-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Info
+        run: |
+          echo "Branch ref: ${{ github.ref }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+
   release:
     runs-on: ubuntu-latest
+    needs: debug-info
+    if: ${{ success() }}
     permissions:
-      contents: write  # Needed for gh-pages
-      packages: write  # Needed for GHCR
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout
@@ -45,7 +53,7 @@ jobs:
         with:
           version: v3.12.0
 
-      - name: Add Argo Rollouts CRD repo
+      - name: Add Helm repos
         run: |
           helm repo add argo https://argoproj.github.io/argo-helm
           helm repo update
@@ -53,20 +61,34 @@ jobs:
       - name: Set Chart Version
         id: set_version
         run: |
+          echo "Current directory: $(pwd)"
+          echo "Chart directory contents:"
+          ls -la ${{ env.CHART_DIR }}
+          
+          # Get base version from Chart.yaml
+          CHART_VERSION=$(yq eval '.version' ${{ env.CHART_DIR }}/Chart.yaml)
+          
           if [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
-            # For release branches, append git sha
+            # For release branches, append commit SHA
             SHA=$(git rev-parse --short HEAD)
-            CHART_VERSION=$(yq eval '.version' ${{ env.CHART_DIR }}/Chart.yaml)
             NEW_VERSION="${CHART_VERSION}-${SHA}"
-            yq eval -i '.version = "'${NEW_VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
-            echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
           else
-            # For master/main, use version as is
-            VERSION=$(yq eval '.version' ${{ env.CHART_DIR }}/Chart.yaml)
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            # For main/master, use version as is
+            NEW_VERSION="${CHART_VERSION}"
           fi
+          
+          echo "Setting version to: ${NEW_VERSION}"
+          yq eval -i '.version = "'${NEW_VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
+          echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Run chart-releaser
+      - name: Package Chart
+        run: |
+          helm dependency update ${{ env.CHART_DIR }}
+          helm package ${{ env.CHART_DIR }}
+          mkdir -p .cr-release-packages
+          mv *.tgz .cr-release-packages/
+
+      - name: Create Release
         uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -75,20 +97,18 @@ jobs:
           charts_dir: .
           config: .github/cr.yaml
 
-      - name: Package Chart
-        run: |
-          helm dependency update ${{ env.CHART_DIR }}
-          helm package ${{ env.CHART_DIR }}
-
-      # Push to GitHub Container Registry
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Helm chart to GHCR
+      - name: Push to GHCR
+        env:
+          HELM_EXPERIMENTAL_OCI: 1
         run: |
           VERSION=${{ steps.set_version.outputs.version }}
-          helm push mesa-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+          CHART_NAME=mesa
+          REGISTRY=ghcr.io/${{ github.repository_owner }}/charts
+          
+          echo "Logging into GHCR..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          echo "Pushing chart ${CHART_NAME}:${VERSION} to ${REGISTRY}..."
+          helm push .cr-release-packages/mesa-${VERSION}.tgz oci://${REGISTRY}
+          
+          echo "Successfully pushed chart to GHCR"
