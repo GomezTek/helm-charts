@@ -68,7 +68,10 @@ jobs:
             echo "Creating gh-pages branch"
             git checkout --orphan gh-pages
             git reset --hard
-            git commit --allow-empty -m "Initialize gh-pages branch"
+            # Create empty index.yaml
+            helm repo index --url https://gomeztek.github.io/helm-charts .
+            git add index.yaml
+            git commit -m "Initialize gh-pages branch with empty index.yaml"
             git push origin gh-pages
             # Return to original branch
             git checkout $CURRENT_BRANCH
