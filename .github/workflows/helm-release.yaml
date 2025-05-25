@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - 'release/*'
     paths:
       - 'gtk-mesa-chart/**'
       - '.github/workflows/helm-release.yaml'
@@ -44,6 +45,27 @@ jobs:
           helm repo add argo https://argoproj.github.io/argo-helm
           helm repo update
 
+      - name: Set Chart Version
+        id: set_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            # For release branches, append git sha
+            SHA=$(git rev-parse --short HEAD)
+            CHART_VERSION=$(yq '.version' ${{ env.CHART_DIR }}/Chart.yaml)
+            NEW_VERSION="${CHART_VERSION}-${SHA}"
+            yq -i '.version = "'${NEW_VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
+            echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          else
+            # For master/main, use version as is
+            VERSION=$(yq '.version' ${{ env.CHART_DIR }}/Chart.yaml)
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package Chart
+        run: |
+          helm package ${{ env.CHART_DIR }}
+
+      # Push to GitHub Pages Helm repo
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.5.0
         env:
@@ -53,17 +75,7 @@ jobs:
           charts_dir: .
           config: .github/cr.yaml
 
-      - name: Generate test values
-        run: |
-          cp ${{ env.CHART_DIR }}/values.test.yaml ${{ env.CHART_DIR }}/ci/test-values.yaml
-
-      - name: Run tests
-        run: |
-          helm dependency update ${{ env.CHART_DIR }}
-          helm lint ${{ env.CHART_DIR }} --values ${{ env.CHART_DIR }}/ci/test-values.yaml
-          helm template test ${{ env.CHART_DIR }} --values ${{ env.CHART_DIR }}/ci/test-values.yaml
-
-      # Optional: Push OCI chart to GitHub Container Registry
+      # Push to GitHub Container Registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -73,6 +85,5 @@ jobs:
 
       - name: Push Helm chart to GHCR
         run: |
-          CHART_VERSION=$(helm show chart ${{ env.CHART_DIR }} | grep '^version:' | cut -d' ' -f2)
-          helm package ${{ env.CHART_DIR }}
-          helm push mesa-${CHART_VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+          VERSION=${{ steps.set_version.outputs.version }}
+          helm push mesa-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

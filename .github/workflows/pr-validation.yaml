@@ -1,0 +1,93 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'gtk-mesa-chart/**'
+      - '.github/workflows/**'
+
+env:
+  CHART_DIR: gtk-mesa-chart
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Setup Kubeconform
+        run: |
+          wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar xf kubeconform-linux-amd64.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Add required Helm repos
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm repo update
+
+      - name: Check version increment
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          BASE_VERSION=$(git show origin/${{ github.base_ref }}:${{ env.CHART_DIR }}/Chart.yaml | grep '^version:' | cut -d' ' -f2)
+          PR_VERSION=$(grep '^version:' ${{ env.CHART_DIR }}/Chart.yaml | cut -d' ' -f2)
+          if [ "$(printf '%s\n' "$PR_VERSION" "$BASE_VERSION" | sort -V | tail -n1)" != "$PR_VERSION" ]; then
+            echo "Error: Chart version must be incremented. Base version: $BASE_VERSION, PR version: $PR_VERSION"
+            exit 1
+          fi
+
+      - name: Validate Chart Dependencies
+        run: |
+          cd ${{ env.CHART_DIR }}
+          helm dependency build
+          if ! helm dependency list | grep -q "ok"; then
+            echo "Error: Chart dependencies are not properly resolved"
+            exit 1
+          fi
+
+      - name: Run chart tests
+        run: |
+          helm lint ${{ env.CHART_DIR }}
+          helm template test ${{ env.CHART_DIR }} --values ${{ env.CHART_DIR }}/ci/test-values.yaml
+
+      - name: Run additional validations
+        run: |
+          # Check for deprecated APIs
+          if helm template test ${{ env.CHART_DIR }} | grep -i "apiVersion.*beta"; then
+            echo "Warning: Found beta API versions"
+            exit 1
+          fi
+
+          # Check for hardcoded image tags
+          if grep -r "image:.*latest" ${{ env.CHART_DIR }}; then
+            echo "Error: Found hardcoded 'latest' image tags. Please use specific versions."
+            exit 1
+          fi
+
+          # Check for security best practices
+          if helm template test ${{ env.CHART_DIR }} | grep -i "privileged: true"; then
+            echo "Warning: Found privileged containers"
+            exit 1
+          fi
+
+          # Check resource limits
+          if ! helm template test ${{ env.CHART_DIR }} | grep -A5 "resources:" | grep -E "limits:|requests:"; then
+            echo "Error: Some containers may be missing resource limits/requests"
+            exit 1
+          fi
+
+      - name: Validate Kubernetes manifests
+        run: |
+          helm template test ${{ env.CHART_DIR }} --values ${{ env.CHART_DIR }}/ci/test-values.yaml | \
+          kubeconform -kubernetes-version 1.24.0 -strict -verbose

@@ -75,3 +75,4 @@ online-orders:
   image: gomeztek/flash:v3.6.1-hf2
   replicas: 2
   service_account: sa-online-orders
+
