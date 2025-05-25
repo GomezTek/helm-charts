@@ -1,5 +1,8 @@
 # GomezTek Mesa Helm Charts
 
+[![Release Charts](https://github.com/gomeztek/helm-charts/actions/workflows/helm-release.yaml/badge.svg)](https://github.com/gomeztek/helm-charts/actions/workflows/helm-release.yaml)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mesa)](https://artifacthub.io/packages/search?repo=mesa)
+
 This repository contains Helm charts for deploying GomezTek Mesa, a complete restaurant operating system.
 
 ## Development Workflow (SDLC)
