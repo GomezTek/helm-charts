@@ -119,7 +119,9 @@ jobs:
         run: |
           VERSION=${{ steps.set_version.outputs.version }}
           CHART_NAME=mesa
-          REGISTRY=ghcr.io/${{ github.repository_owner }}/charts
+          # Convert repository owner to lowercase for GHCR
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REGISTRY=ghcr.io/${REPO_OWNER}/charts
           
           echo "Logging into GHCR..."
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
