@@ -16,3 +16,22 @@ spec:
   {{- if .Values.mysql.storage_class }}
   storageClassName: {{ .Values.mysql.storage_class }}
   {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "backup-storage" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: database-backup
+  annotations:
+    {{- include "mesa.annotations" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.backup.pvc_size | default "20Gi" }}
+  {{- if .Values.mysql.storage_class }}
+  storageClassName: {{ .Values.mysql.storage_class }}
+  {{- end }}

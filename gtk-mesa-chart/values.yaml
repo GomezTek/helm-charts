@@ -1,5 +1,5 @@
 global:
-  company: 
+  company: mesa  # Set a default company name to avoid empty resource names
   environment: production
   docker_registry_secret: gtk-docker-hub-registry
 
@@ -63,5 +63,8 @@ rolloutConfig:
       previewService: backhouse-preview-service
       autoPromotionEnabled: false
       scaleDownDelaySeconds: 300  # 5 minutes delay before scaling down old version
+
+backup:
+  pvc_size: 20Gi  # Size of backup storage for database backups
 
 
