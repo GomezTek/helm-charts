@@ -72,8 +72,10 @@ jobs:
 
       - name: Setup Yq
         run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          YQ_VERSION="v4.40.5"  # Pin to specific version for reliability
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
           sudo chmod +x /usr/local/bin/yq
+          yq --version
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -129,17 +131,51 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Set git user for tagging
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+
           VERSION=${{ steps.set_version.outputs.version }}
           TAG="mesa-${VERSION}"
+          
+          # Check if tag exists and delete it if needed
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, deleting..."
+            git tag -d $TAG
+            git push origin :refs/tags/$TAG
+          fi
+
+          # Delete release if it exists
+          if gh release view $TAG >/dev/null 2>&1; then
+            echo "Release $TAG already exists, deleting..."
+            gh release delete $TAG -y
+          fi
           
           # Create a tag
           git tag $TAG
           git push origin $TAG
           
+          # Generate release notes
+          RELEASE_NOTES="## Mesa Chart ${VERSION}
+
+### What's Changed
+- Chart version: ${VERSION}
+- Repository: ${{ github.repository }}
+- Branch: ${GITHUB_REF#refs/heads/}
+- Workflow: ${{ github.workflow }}
+- Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+### Installation
+\`\`\`bash
+helm registry login ghcr.io -u YOUR-USERNAME
+helm pull oci://ghcr.io/${{ github.repository_owner }}/charts/mesa --version ${VERSION}
+\`\`\`
+"
+          
           # Create a release
           gh release create $TAG \
             --title "Mesa Chart ${VERSION}" \
-            --notes "Release of Mesa Chart version ${VERSION}" \
+            --notes "$RELEASE_NOTES" \
             mesa-${VERSION}.tgz
           
           echo "Successfully created release and tag ${TAG}"
