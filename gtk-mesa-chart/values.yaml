@@ -1,0 +1,33 @@
+global:
+  company: 
+  environment: production
+  docker_registry_secret: gtk-docker-hub-registry
+
+mysql:
+  image: mysql:5.7.38
+  pvc_size: 10Gi
+  config_map_name: mysql-config
+  secret_name: mysql-secret
+  service_account: sa-mysql
+
+web:
+  image: gomeztek/flash:v3.6.1-hf2
+  replicas: 2
+  service_account: sa-web
+
+store:
+  image: gomeztek/flash:v3.6.1-hf2
+  replicas: 0
+  service_account: sa-web
+
+redis:
+  image: redis:6.2.7
+  replicas: 1
+  service_account: sa-redis
+
+ingress:
+  hosts:
+    - host: comadres2.gtkpos.com
+      service: pos-service
+    - host: comadres2.store.gtkpos.com
+      service: store-service
