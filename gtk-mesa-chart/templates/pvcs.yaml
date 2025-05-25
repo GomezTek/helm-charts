@@ -1,7 +1,8 @@
+{{/* Persistent Volume Claims */}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "mesa.resourceName" (dict "suffix" "mysql-data" "root" .) }}
+  name: {{ include "mesa.fullname" . }}-mysql-data
   labels:
     {{- include "mesa.labels" . | nindent 4 }}
   annotations:

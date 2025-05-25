@@ -1,7 +1,8 @@
+{{/* Pod Disruption Budgets */}}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "mesa.resourceName" (dict "suffix" "redis-pdb" "root" .) }}
+  name: {{ include "mesa.fullname" . }}-redis
   labels:
     {{- include "mesa.labels" . | nindent 4 }}
 spec:
@@ -14,7 +15,7 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "mesa.resourceName" (dict "suffix" "backhouse-pdb" "root" .) }}
+  name: {{ include "mesa.fullname" . }}-backhouse
   labels:
     {{- include "mesa.labels" . | nindent 4 }}
     component: staff-portal
@@ -29,7 +30,7 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-pdb" "root" .) }}
+  name: {{ include "mesa.fullname" . }}-fronthouse
   labels:
     {{- include "mesa.labels" . | nindent 4 }}
     component: customer-portal

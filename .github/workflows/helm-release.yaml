@@ -15,7 +15,34 @@ env:
   CHART_DIR: gtk-mesa-chart
 
 jobs:
+  chart-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Add Helm repos
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm repo update
+
+      - name: Run helm lint
+        run: |
+          helm lint ${{ env.CHART_DIR }}
+
+      - name: Run helm template
+        run: |
+          helm template test ${{ env.CHART_DIR }}
+
   debug-info:
+    needs: chart-test
     runs-on: ubuntu-latest
     steps:
       - name: Debug Info
@@ -25,8 +52,8 @@ jobs:
           echo "Repository: ${{ github.repository }}"
 
   release:
+    needs: [chart-test, debug-info]
     runs-on: ubuntu-latest
-    needs: debug-info
     if: ${{ success() }}
     permissions:
       contents: write
