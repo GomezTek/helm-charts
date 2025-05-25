@@ -14,7 +14,7 @@ graph TD
     B --> C{Branch Type?}
     C -->|feature/* or fix/*| D[No Release]
     C -->|release/*| E[Create RC Release]
-    C -->|master/main| F[Create Production Release]
+    C -->|main| F[Create Production Release]
     E --> G[Version with Git SHA]
     F --> H[Version from Chart.yaml]
 ```
@@ -51,13 +51,13 @@ git push origin release/0.1.0
 ```
 
 #### Production Releases
-- Merge to `master` or `main`
+- Merge to `main`
 - Uses version from Chart.yaml
 - Creates production release
 ```zsh
-git checkout master
+git checkout main
 git merge your-feature-branch
-git push origin master
+git push origin main
 ```
 
 ### 3. Version Management

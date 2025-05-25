@@ -90,7 +90,7 @@ jobs:
             
             This PR was created automatically by the version bump workflow.
           branch: ${{ github.event.inputs.branch }}
-          base: master
+          base: main
           labels: version-bump
           commit-message: 'chore: bump chart version to ${{ steps.bump_version.outputs.new_version }}'
           delete-branch: true

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
       - 'release/*'
     paths:
       - 'gtk-mesa-chart/**'
@@ -124,7 +123,7 @@ jobs:
             SHA=$(git rev-parse --short HEAD)
             NEW_VERSION="${CHART_VERSION}-${SHA}"
           else
-            # For main/master, use version as is
+            # For main branch, use version as is
             NEW_VERSION="${CHART_VERSION}"
           fi
           
