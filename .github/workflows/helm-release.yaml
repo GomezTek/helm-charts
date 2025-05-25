@@ -60,6 +60,9 @@ jobs:
 
       - name: Initialize gh-pages branch
         run: |
+          # Store current branch name
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          
           # Check if gh-pages branch exists
           if ! git ls-remote --heads origin gh-pages | grep gh-pages > /dev/null; then
             echo "Creating gh-pages branch"
@@ -67,7 +70,8 @@ jobs:
             git reset --hard
             git commit --allow-empty -m "Initialize gh-pages branch"
             git push origin gh-pages
-            git checkout -
+            # Return to original branch
+            git checkout $CURRENT_BRANCH
           fi
 
       - name: Set Chart Version
