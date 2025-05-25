@@ -120,6 +120,6 @@ jobs:
           
           echo "Packaging and pushing chart ${CHART_NAME}:${VERSION}..."
           helm package ${{ env.CHART_DIR }}
-          helm push mesa-${VERSION}.tgz oci://${REPO_OWNER}/charts
+          helm push mesa-${VERSION}.tgz oci://ghcr.io/${REPO_OWNER}/charts
           
           echo "Successfully pushed chart to GHCR"
