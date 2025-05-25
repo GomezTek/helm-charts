@@ -14,11 +14,25 @@ mysql:
 
 redis:
   service_account: sa-redis
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: 512Mi
+    requests:
+      cpu: "0.2"
+      memory: 256Mi
 
 backhouseweb:
-  image: gomeztek/backhouse:latest
+  image: gomeztek/flash:v3.6.1-hf2
   replicas: 1
   service_account: sa-web
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: 512Mi
+    requests:
+      cpu: "0.2"
+      memory: 256Mi
   resources:
     limits:
       cpu: "0.5"

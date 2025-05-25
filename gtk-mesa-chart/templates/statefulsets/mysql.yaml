@@ -1,48 +1,62 @@
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "mesa.resourceName" (dict "suffix" "mysql" "root" .) }}
   labels:
     {{- include "mesa.labels" . | nindent 4 }}
+    component: database
   annotations:
     {{- include "mesa.annotations" . | nindent 4 }}
 spec:
-  serviceName: database-service
-  replicas: 1
+  replicas: {{ .Values.mysql.replicaCount | default 1 }}
   selector:
     matchLabels:
-      {{- include "mesa.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/name: mysql
+  serviceName: database-service
   template:
     metadata:
       labels:
-        {{- include "mesa.labels" . | nindent 8 }}
         app.kubernetes.io/name: mysql
+        io.kompose.network/backend: "true"
+        {{- include "mesa.labels" . | nindent 8 }}
       annotations:
         {{- include "mesa.annotations" . | nindent 8 }}
     spec:
+      nodeSelector:
+        {{- toYaml .Values.mysql.nodeSelector | nindent 8 }}
       containers:
-        - name: {{ include "mesa.resourceName" (dict "suffix" "mysql" .) }}
-          image: {{ .Values.mysql.image }}
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "mesa.resourceName" (dict "suffix" "mysql-secret" .) }}
-                  key: password
-          volumeMounts:
-            - name: mysql-data
-              mountPath: /var/lib/mysql/data
-            - name: config-map-custom
-              mountPath: /etc/mysql/conf.d
-      serviceAccountName: {{ .Values.mysql.service_account }}
-      volumes:
+      - name: database
+        image: {{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}
+        imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+        args:
+        {{- range .Values.mysql.args }}
+        - {{ . | quote }}
+        {{- end }}
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: TZ
+          value: {{ .Values.mysql.timezone | quote }}
+        resources:
+          {{- toYaml .Values.mysql.resources | nindent 10 }}
+        volumeMounts:
         - name: mysql-data
-          persistentVolumeClaim:
-            claimName: {{ include "mesa.resourceName" (dict "suffix" "mysql-data" .) }}
+          mountPath: /var/lib/mysql/data
         - name: config-map-custom
-          configMap:
-            name: {{ include "mesa.resourceName" (dict "suffix" "mysql-config" .) }}
-            items:
-              - key: custom.cnf
-                path: custom.cnf
+          mountPath: /etc/mysql/conf.d
+      restartPolicy: Always
+      serviceAccountName: sa-mysql
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: db-pvc
+      - name: config-map-custom
+        configMap:
+          name: {{ include "mesa.resourceName" (dict "suffix" "mysql-config" "root" .) }}
+          items:
+          - key: custom.cnf
+            path: custom.cnf
