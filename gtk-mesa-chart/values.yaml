@@ -64,3 +64,4 @@ rolloutConfig:
       autoPromotionEnabled: false
       scaleDownDelaySeconds: 300  # 5 minutes delay before scaling down old version
 
+
