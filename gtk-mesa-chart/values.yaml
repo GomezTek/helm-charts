@@ -6,28 +6,72 @@ global:
 mysql:
   image: mysql:5.7.38
   pvc_size: 10Gi
-  config_map_name: mysql-config
   secret_name: mysql-secret
   service_account: sa-mysql
 
-web:
-  image: gomeztek/flash:v3.6.1-hf2
-  replicas: 2
-  service_account: sa-web
-
-store:
+backhouse-web:
   image: gomeztek/flash:v3.6.1-hf2
   replicas: 0
   service_account: sa-web
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: 512Mi
+    requests:
+      cpu: "0.2"
+      memory: 256Mi
 
 redis:
   image: redis:6.2.7
   replicas: 1
   service_account: sa-redis
 
+fronthouse-web:
+  image: gomeztek/flash:v3.6.1-hf2
+  replicas: 2
+  service_account: sa-web
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: 512Mi
+    requests:
+      cpu: "0.2"
+      memory: 256Mi
+
 ingress:
+  className: nginx-external
   hosts:
-    - host: comadres2.gtkpos.com
-      service: pos-service
+    # Production hosts
     - host: comadres2.store.gtkpos.com
-      service: store-service
+      service: backhouse-web-service
+    - host: store.gtkpos.com
+      service: fronthouse-web-service
+    # Blue/Green testing hosts
+    - host: blue.backhouse.gtkpos.com
+      service: backhouse-web-preview-service
+    - host: blue.store.gtkpos.com
+      service: fronthouse-web-preview-service
+  tls:
+    - secretName: secret-tls-comadres2
+      hosts:
+        - comadres2.store.gtkpos.com
+        - store.gtkpos.com
+        - blue.backhouse.gtkpos.com
+        - blue.store.gtkpos.com
+
+# No secrets should be stored in values.yaml
+# Secrets should be managed externally and applied separately
+
+rolloutStrategy:
+  type: canary
+  steps:
+    - setWeight: 25
+    - pause: { duration: 30s }
+    - setWeight: 50
+    - pause: { duration: 1m }
+    - setWeight: 100
+
+online-orders:
+  image: gomeztek/flash:v3.6.1-hf2
+  replicas: 2
+  service_account: sa-online-orders

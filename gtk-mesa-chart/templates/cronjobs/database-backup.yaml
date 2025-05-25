@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.global.company }}-{{ .Values.global.environment }}-database-backup
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+  annotations:
+    {{- include "mesa.annotations" . | nindent 4 }}
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: backup
+              image: gomeztek/flash-backup:latest
+              env:
+                - name: COMPANY
+                  value: {{ .Values.global.company | quote }}
+                - name: ENVIRONMENT
+                  value: {{ .Values.global.environment | quote }}
+                - name: BACKUP_DB
+                  value: "TRUE"
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.mysql.secret_name }}
+                      key: password
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secret
+                      key: access_key
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secret
+                      key: secret
+          imagePullSecrets:
+            - name: {{ .Values.global.docker_registry_secret }}
+          restartPolicy: Never
+          serviceAccountName: {{ .Values.mysql.service_account }}
+          terminationGracePeriodSeconds: 15

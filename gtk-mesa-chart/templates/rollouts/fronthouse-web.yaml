@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-web" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: customer-portal
+  annotations:
+    {{- include "mesa.annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.fronthouseweb.replicas }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "mesa.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: fronthouse-web
+  template:
+    metadata:
+      labels:
+        {{- include "mesa.labels" . | nindent 8 }}
+        app.kubernetes.io/component: fronthouse-web
+      annotations:
+        {{- include "mesa.annotations" . | nindent 8 }}
+    spec:
+      containers:
+      - name: fronthouse-web
+        image: {{ .Values.fronthouseweb.image }}
+        ports:
+        - name: https
+          containerPort: 443
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.global.environment | quote }}
+        - name: COMPANY
+          value: {{ .Values.global.company | quote }}
+        resources:
+          {{- toYaml .Values.fronthouseweb.resources | nindent 10 }}
+      imagePullSecrets:
+      - name: {{ .Values.global.docker_registry_secret }}
+      serviceAccountName: {{ .Values.fronthouseweb.service_account }}
+  strategy:
+    blueGreen:
+      activeService: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-service" "root" .) }}
+      previewService: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-preview-service" "root" .) }}
+      autoPromotionEnabled: false

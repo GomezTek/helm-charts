@@ -1,0 +1,107 @@
+# Database service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "database-service" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: mysql-tcp
+      port: 3306
+      targetPort: 3306
+  selector:
+    {{- include "mesa.selectorLabels" . | nindent 4 }}
+
+---
+
+# Redis service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "redis-service" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: redis-tcp
+      port: 6379
+      targetPort: 6379
+  selector:
+    {{- include "mesa.selectorLabels" . | nindent 4 }}
+
+---
+
+# Backhouse Web service (Staff Portal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "backhouse-service" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: staff-portal
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+  selector:
+    {{- include "mesa.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backhouse-web
+
+---
+
+# Backhouse Web Preview service (for blue/green deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "backhouse-preview-service" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: staff-portal-preview
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+  selector:
+    {{- include "mesa.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backhouse-web
+
+---
+
+# Fronthouse Web service (Customer Portal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-service" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: customer-portal
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+  selector:
+    {{- include "mesa.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: fronthouse-web
+
+---
+
+# Fronthouse Web Preview service (for blue/green deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-preview-service" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: customer-portal-preview
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+  selector:
+    {{- include "mesa.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: fronthouse-web

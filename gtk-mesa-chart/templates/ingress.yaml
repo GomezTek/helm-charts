@@ -1,0 +1,57 @@
+{{- if .Values.ingress.hosts }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "ingress" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+  annotations:
+    {{- include "mesa.annotations" . | nindent 4 }}
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | default "nginx-external" }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | default "nginx-external" }}
+  rules:
+    # Staff Portal (Backhouse)
+    {{- range .Values.ingress.backhouse.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "mesa.resourceName" (dict "suffix" "backhouse-service" "root" $) }}
+                port:
+                  number: 443
+    {{- end }}
+    # Customer Portal (Fronthouse)
+    {{- range .Values.ingress.fronthouse.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-service" "root" $) }}
+                port:
+                  number: 443
+    {{- end }}
+  tls:
+    # Staff Portal TLS
+    {{- with .Values.ingress.backhouse.tls }}
+    - secretName: {{ .secretName }}
+      hosts:
+        {{- range .hosts }}
+        - {{ . }}
+        {{- end }}
+    {{- end }}
+    # Customer Portal TLS
+    {{- with .Values.ingress.fronthouse.tls }}
+    - secretName: {{ .secretName }}
+      hosts:
+        {{- range .hosts }}
+        - {{ . }}
+        {{- end }}
+    {{- end }}
+{{- end }}

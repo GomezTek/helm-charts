@@ -1,6 +1,28 @@
 apiVersion: v2
 name: mesa
-description: Helm chart for Mesa (Complete Store Manager)
+description: Helm chart for GomezTek Mesa (The Complete Restaurant Operating System)
 type: application
 version: 0.1.0
-appVersion: "4.0.0"
+appVersion: "0.1.0"
+icon: https://gomeztek.com/wp-content/uploads/2016/04/fav.png
+
+maintainers:
+  - name: GomezTek
+    email: support@gomeztek.com
+    url: https://gomeztek.com
+
+dependencies:
+  - name: argo-rollouts
+    version: "2.32.0"
+    repository: "https://argoproj.github.io/argo-helm"
+    condition: argo-rollouts.enabled
+
+keywords:
+  - restaurant
+  - pos
+  - management
+  - operations
+
+home: https://gomeztek.com/mesa
+sources:
+  - https://github.com/gomeztek/helm-charts

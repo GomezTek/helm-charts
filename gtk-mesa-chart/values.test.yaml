@@ -1,0 +1,55 @@
+global:
+  company: testco
+  environment: test
+  team: platform
+  docker_registry_secret: testco-registry
+
+mysql:
+  image: mysql:5.7.38
+  pvc_size: 10Gi
+  storage_class: standard
+  service_account: sa-mysql
+
+redis:
+  service_account: sa-redis
+
+backhouseweb:
+  image: testco/backhouse:latest
+  replicas: 2
+  service_account: sa-web
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: 512Mi
+    requests:
+      cpu: "0.2"
+      memory: 256Mi
+
+fronthouseweb:
+  image: testco/fronthouse:latest
+  replicas: 3
+  service_account: sa-web
+  resources:
+    limits:
+      cpu: "1.0"
+      memory: 1Gi
+    requests:
+      cpu: "0.5"
+      memory: 512Mi
+
+ingress:
+  className: nginx-external
+  backhouse:
+    hosts:
+      - host: staff.testco.com
+    tls:
+      secretName: staff-tls
+      hosts:
+        - staff.testco.com
+  fronthouse:
+    hosts:
+      - host: orders.testco.com
+    tls:
+      secretName: orders-tls
+      hosts:
+        - orders.testco.com

@@ -1,0 +1,41 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "redis-pdb" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "mesa.selectorLabels" . | nindent 6 }}
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "backhouse-pdb" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: staff-portal
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "mesa.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backhouse-web
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "mesa.resourceName" (dict "suffix" "fronthouse-pdb" "root" .) }}
+  labels:
+    {{- include "mesa.labels" . | nindent 4 }}
+    component: customer-portal
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "mesa.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: fronthouse-web

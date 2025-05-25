@@ -1,0 +1,8 @@
+owner: gomeztek
+git-base-url: https://api.github.com/
+git-upload-url: https://uploads.github.com/
+index-path: .cr-index
+charts-repo: https://gomeztek.github.io/helm-charts
+skip-existing: true
+packages:
+  - gtk-mesa-chart

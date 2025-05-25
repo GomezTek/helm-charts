@@ -1,0 +1,31 @@
+# Helm charts dependencies
+charts/
+Chart.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Helm package files
+*.tgz
+
+# Local values files that might contain sensitive information
+values.local.yaml
+*values.local.yaml
+*secret*.yaml
+
+# Temporary files
+*.tmp
+*.log
