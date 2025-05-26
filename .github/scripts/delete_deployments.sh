@@ -61,54 +61,50 @@ if [ -z "$GITHUB_TOKEN" ]; then
     exit 1
 fi
 
-# Function to delete a specific package version
-delete_package_version() {
-    local version_id="$1"
-    echo "Deleting package version $version_id..."
-    curl -L -X DELETE \
+# Function to delete a specific deployment
+# $1 = deployment_id
+# $2 = repo_owner
+# $3 = repo_name
+# Requires: GITHUB_TOKEN
+
+delete_deployment() {
+    local deployment_id="$1"
+    local repo_owner="$2"
+    local repo_name="$3"
+    echo "Deleting deployment $deployment_id..."
+    curl -s -L -X DELETE \
         -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $GITHUB_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
-        "https://api.github.com/user/packages/container/charts%2F${CHART_NAME}/versions/${version_id}"
+        "https://api.github.com/repos/${repo_owner}/${repo_name}/deployments/${deployment_id}"
 }
 
-# Get all package versions
-echo "Fetching package versions for ${CHART_NAME} from ghcr.io/${REGISTRY_OWNER}/charts..."
-VERSIONS=$(curl -s -L -f \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer $GITHUB_TOKEN" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/orgs/${REGISTRY_OWNER}/packages/container/charts%2F${CHART_NAME}/versions" 2>/dev/null || \
-    curl -s -L -f \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer $GITHUB_TOKEN" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/user/packages/container/charts%2F${CHART_NAME}/versions")
+# Get repo owner and name
+REPO_OWNER="$REGISTRY_OWNER"
+REPO_NAME=$(basename -s .git "$(git config --get remote.origin.url)")
 
-# Check if there are any versions
-if [ "$(echo "$VERSIONS" | jq '. | length')" -eq 0 ]; then
-    echo "No package versions found."
+# Fetch all deployments
+DEPLOYMENTS=$(curl -s -L -f \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/deployments")
+
+DEPLOYMENT_COUNT=$(echo "$DEPLOYMENTS" | jq 'length')
+if [ "$DEPLOYMENT_COUNT" -eq 0 ]; then
+    echo "No deployments found."
     exit 0
 fi
 
-# Check if we got an error response
-if echo "$VERSIONS" | jq -e 'has("message")' > /dev/null; then
-    ERROR_MSG=$(echo "$VERSIONS" | jq -r '.message')
-    echo "Error from GitHub API: $ERROR_MSG"
-    exit 1
-fi
+# Show deployments that will be deleted
+echo "The following deployments will be deleted:"
+echo "$DEPLOYMENTS" | jq -r '.[] | "ID: \(.id), Ref: \(.ref), Environment: \(.environment)"'
 
-# Show versions that will be deleted
-echo "The following versions will be deleted:"
-echo "$VERSIONS" | jq -r '.[] | select(.metadata != null) | .metadata.container.tags[] // .name // "unknown"'
-
-# Get count of versions
-VERSION_COUNT=$(echo "$VERSIONS" | jq '. | length')
-echo "Found $VERSION_COUNT version(s)"
+echo "Found $DEPLOYMENT_COUNT deployment(s)"
 
 # Confirm deletion unless force flag is set
 if [ $FORCE -eq 0 ]; then
-    read -p "Are you sure you want to delete all versions? [y/N] " -n 1 -r
+    read -p "Are you sure you want to delete all deployments? [y/N] " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Operation cancelled."
@@ -116,11 +112,12 @@ if [ $FORCE -eq 0 ]; then
     fi
 fi
 
-# Delete each version
-echo "$VERSIONS" | jq -r '.[] | .id' | while read -r version_id; do
-    if [ ! -z "$version_id" ]; then
-        delete_package_version "$version_id"
+# Delete each deployment
+
+echo "$DEPLOYMENTS" | jq -r '.[].id' | while read -r deployment_id; do
+    if [ ! -z "$deployment_id" ]; then
+        delete_deployment "$deployment_id" "$REPO_OWNER" "$REPO_NAME"
     fi
 done
 
-echo "All versions have been deleted successfully."
+echo "All deployments have been deleted successfully."
