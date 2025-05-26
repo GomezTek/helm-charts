@@ -5,11 +5,11 @@ on:
     branches:
       - main
     paths:
-      - 'gtk-mesa-chart/**'
+      - 'mesa-os/**'
       - '.github/workflows/**'
 
 env:
-  CHART_DIR: gtk-mesa-chart
+  CHART_DIR: mesa-os
 
 jobs:
   validate:

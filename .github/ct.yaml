@@ -1,7 +1,7 @@
 remote: origin
 target-branch: main
 chart-dirs:
-  - gtk-mesa-chart
+  - mesa-os
 validate-maintainers: true
 validate-chart-schema: true
 validate-yaml: true

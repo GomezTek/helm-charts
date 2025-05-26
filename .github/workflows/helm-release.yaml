@@ -6,12 +6,12 @@ on:
       - main
       - 'release/*'
     paths:
-      - 'gtk-mesa-chart/**'
+      - 'mesa-os/**'
       - '.github/workflows/helm-release.yaml'
   workflow_dispatch:
 
 env:
-  CHART_DIR: gtk-mesa-chart
+  CHART_DIR: mesa-os
   REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 jobs:

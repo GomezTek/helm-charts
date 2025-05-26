@@ -1,6 +1,6 @@
 apiVersion: v2
-name: mesa
-description: Helm chart for GomezTek Mesa (The Complete Restaurant Operating System)
+name: mesa-os
+description: Helm chart for Mesa OS (The Complete Restaurant Operating System)
 type: application
 version: 0.1.0
 appVersion: "4.0.0"

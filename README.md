@@ -23,8 +23,8 @@ graph TD
 - Make changes to chart files
 - Test locally using:
   ```zsh
-  helm lint gtk-mesa-chart
-  helm template test gtk-mesa-chart
+  helm lint mesa-os
+  helm template test mesa-os
   ```
 
 ### 2. Release Process
@@ -150,7 +150,7 @@ spec:
 
 ## Chart Structure
 ```
-gtk-mesa-chart/
+mesa-os/
 ├── Chart.yaml             # Chart metadata and version
 ├── values.yaml           # Default configuration
 ├── templates/            # Kubernetes manifests
