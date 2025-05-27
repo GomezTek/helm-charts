@@ -156,4 +156,6 @@ jobs:
           git push origin $TAG
           
           # Generate release notes
-          RELEASE_NOTES="## Mesa Chart ${VERSION}
+          RELEASE_NOTES="## Mesa Chart ${VERSION}\n\nRelease notes for version ${VERSION}."
+          echo "$RELEASE_NOTES" > release-notes.md
+          gh release create $TAG -F release-notes.md
