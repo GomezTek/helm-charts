@@ -157,5 +157,5 @@ jobs:
           
           # Generate release notes
           RELEASE_NOTES="## Mesa OS Chart ${VERSION}\n\nRelease notes for version ${VERSION}."
-          echo "$RELEASE_NOTES" > release-notes.md
+          echo -e "$RELEASE_NOTES" > release-notes.md
           gh release create $TAG -F release-notes.md
