@@ -3,7 +3,7 @@
 # Constants
 REPO_OWNER="gomeztek"
 REPO_NAME="helm-charts"
-PACKAGE_NAME="charts%2Fmesa"
+PACKAGE_NAME="charts%2Fmesa-os"
 API_URL="https://api.github.com"
 
 # Colors for output
