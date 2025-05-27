@@ -157,25 +157,3 @@ jobs:
           
           # Generate release notes
           RELEASE_NOTES="## Mesa Chart ${VERSION}
-
-### What's Changed
-- Chart version: ${VERSION}
-- Repository: ${{ github.repository }}
-- Branch: ${GITHUB_REF#refs/heads/}
-- Workflow: ${{ github.workflow }}
-- Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-### Installation
-\`\`\`bash
-helm registry login ghcr.io -u YOUR-USERNAME
-helm pull oci://ghcr.io/${{ github.repository_owner }}/charts/mesa --version ${VERSION}
-\`\`\`
-"
-          
-          # Create a release
-          gh release create $TAG \
-            --title "Mesa Chart ${VERSION}" \
-            --notes "$RELEASE_NOTES" \
-            mesa-${VERSION}.tgz
-          
-          echo "Successfully created release and tag ${TAG}"
