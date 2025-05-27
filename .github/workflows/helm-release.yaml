@@ -136,7 +136,7 @@ jobs:
           git config user.email "github-actions@github.com"
 
           VERSION=${{ steps.set_version.outputs.version }}
-          TAG="mesa-${VERSION}"
+          TAG="mesa-os-${VERSION}"
           
           # Check if tag exists and delete it if needed
           if git rev-parse "$TAG" >/dev/null 2>&1; then
@@ -156,6 +156,6 @@ jobs:
           git push origin $TAG
           
           # Generate release notes
-          RELEASE_NOTES="## Mesa Chart ${VERSION}\n\nRelease notes for version ${VERSION}."
+          RELEASE_NOTES="## Mesa OS Chart ${VERSION}\n\nRelease notes for version ${VERSION}."
           echo "$RELEASE_NOTES" > release-notes.md
           gh release create $TAG -F release-notes.md
